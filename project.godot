@@ -1,0 +1,42 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=4
+
+_global_script_classes=[ {
+"base": "Node2D",
+"class": "Tile_Class",
+"language": "GDScript",
+"path": "res://Tile.gd"
+} ]
+_global_script_class_icons={
+"Tile_Class": ""
+}
+
+[application]
+
+config/name="Slide Tile Puzzle"
+run/main_scene="res://Main.tscn"
+config/icon="res://icon.png"
+
+[display]
+
+window/size/width=720
+window/size/height=540
+
+[global]
+
+wind=false
+
+[physics]
+
+common/enable_pause_aware_picking=true
+
+[rendering]
+
+environment/default_environment="res://default_env.tres"
