@@ -1,5 +1,8 @@
 extends Node2D
 
+signal solved
+signal mixing
+
 const MINLEVEL := 2
 
 enum States {mix, sliding, none, ready, queued}
@@ -9,15 +12,19 @@ export(int) var size :int = (Tile_Class.MINSIZE + 1) * MINLEVEL - 1 setget _setS
 export var bgColor := Color.black setget _setBGColor
 export var level := MINLEVEL setget _setLevel
 export(int) var tileSize := Tile_Class.MINSIZE setget _setTileSize
+export var mix := 120
 
 var Tile := preload("res://Tile.tscn")
 var board := []
-var blankRow = -1
-var blankCol = -1
+var blankRow := -1
+var blankCol := -1
 var state = States.none
 var queued = Moves.none
+var _mix := -1
+var _invLast :int = Moves.none
 
 func _ready():
+	randomize()
 	reset()
 
 func _setBGColor(val :Color):
@@ -72,7 +79,11 @@ func reset():
 			num += 1
 	blankCol = level - 1
 	blankRow = level - 1
-	state = States.ready
+	$Tween.remove_all()
+	state = States.mix
+	_mix = mix
+	_invLast = Moves.none
+	nextMix()
 
 func selected(val):
 	if not (state in [States.ready, States.sliding]):
@@ -86,50 +97,74 @@ func selected(val):
 	elif blankCol < level - 1 and board[blankRow][blankCol + 1].label == val:
 		doMove(Moves.left)
 
-func doMove(move :int):
+func doMove(move :int, speed :float = .5):
 	var tile
 	if state == States.sliding:
 		state = States.queued
 		queued = move
 	if state == States.ready:
 		state = States.sliding
+	if state in [States.sliding, States.mix]:
 		match move:
 			Moves.down:
 				tile = board[blankRow - 1][blankCol]
-				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(0, tileSize), 1, Tween.TRANS_QUAD)
+				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(0, tileSize + 1), speed, Tween.TRANS_QUAD)
 				$Tween.start()
 				board[blankRow][blankCol] = tile
 				blankRow -= 1
-				board[blankRow][blankCol] = null
-				print("down")
+				_invLast = Moves.up
 			Moves.up:
 				tile = board[blankRow + 1][blankCol]
-				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(0, -tileSize), 1, Tween.TRANS_QUAD)
+				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(0, -tileSize - 1), speed, Tween.TRANS_QUAD)
 				$Tween.start()
 				board[blankRow][blankCol] = tile
 				blankRow += 1
-				board[blankRow][blankCol] = null
-				print("up")
+				_invLast = Moves.down
 			Moves.left:
 				tile = board[blankRow][blankCol + 1]
-				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(-tileSize, 0), 1, Tween.TRANS_QUAD)
+				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(-tileSize - 1, 0), speed, Tween.TRANS_QUAD)
 				$Tween.start()
 				board[blankRow][blankCol] = tile
 				blankCol += 1
-				board[blankRow][blankCol] = null
-				print("left")
+				_invLast = Moves.right
 			Moves.right:
 				tile = board[blankRow][blankCol - 1]
-				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(tileSize, 0), 1, Tween.TRANS_QUAD)
+				$Tween.interpolate_property(tile, "position", tile.position, tile.position + Vector2(tileSize + 1, 0), speed, Tween.TRANS_QUAD)
 				$Tween.start()
 				board[blankRow][blankCol] = tile
 				blankCol -= 1
-				board[blankRow][blankCol] = null
-				print("right")
+				_invLast = Moves.left
+		board[blankRow][blankCol] = null
 	
 func _on_Tween_tween_all_completed():
-	if state == States.sliding:
+	match state:
+		States.sliding:
+			state = States.ready
+		States.queued:
+			state = States.ready
+			doMove(queued)
+		States.mix:
+			nextMix()
+
+func nextMix():
+	if _mix < 0:
 		state = States.ready
-	if state == States.queued:
-		state = States.ready
-		doMove(queued)
+		return
+	_mix -= 1
+	var iMove := randi() % 4
+	var allMoves := [Moves.up, Moves.down, Moves.left, Moves.right]
+	while !checkMove(allMoves[iMove]) or allMoves[iMove] == _invLast:
+		iMove = randi() % 4
+	doMove(allMoves[iMove], .05)
+
+func checkMove(move: int) -> bool:
+	match move:
+		Moves.down:
+			return blankRow > 0
+		Moves.right:
+			return blankCol > 0
+		Moves.up:
+			return blankRow < level - 1
+		Moves.left:
+			return blankCol < level - 1
+	return false
