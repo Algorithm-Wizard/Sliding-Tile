@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://SourceCodePro-Medium.ttf" type="DynamicFontData" id=1]
 [ext_resource path="res://Game.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Main.gd" type="Script" id=3]
 
 [sub_resource type="DynamicFont" id=1]
 size = 22
@@ -11,6 +12,7 @@ font_data = ExtResource( 1 )
 default_font = SubResource( 1 )
 
 [node name="Main" type="Node2D"]
+script = ExtResource( 3 )
 
 [node name="Label" type="Label" parent="."]
 margin_left = 20.0
@@ -18,7 +20,7 @@ margin_top = 16.0
 margin_right = 215.0
 margin_bottom = 46.0
 theme = SubResource( 2 )
-text = "Game State Text"
+text = "Starting Game..."
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -37,21 +39,11 @@ margin_bottom = 428.0
 margin_right = 428.0
 margin_bottom = 428.0
 
-[node name="Reset" type="Button" parent="."]
-margin_left = 588.0
-margin_top = 424.0
-margin_right = 704.0
-margin_bottom = 458.0
-text = "reset"
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
 [node name="NewGame" type="Button" parent="."]
-margin_left = 588.0
-margin_top = 378.0
-margin_right = 704.0
-margin_bottom = 412.0
+margin_left = 589.0
+margin_top = 392.0
+margin_right = 705.0
+margin_bottom = 426.0
 text = "New Game"
 __meta__ = {
 "_edit_use_anchors_": false
@@ -59,12 +51,18 @@ __meta__ = {
 
 [node name="Solve" type="Button" parent="."]
 margin_left = 588.0
-margin_top = 470.0
-margin_right = 704.0
-margin_bottom = 504.0
+margin_top = 448.0
+margin_right = 703.0
+margin_bottom = 482.0
 text = "Solve"
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[connection signal="mixed" from="Game" to="." method="_on_Game_mixed"]
+[connection signal="mixing" from="Game" to="." method="_on_Game_mixing"]
+[connection signal="move" from="Game" to="." method="_on_Game_move"]
+[connection signal="solved" from="Game" to="." method="_on_Game_solved"]
+[connection signal="button_down" from="NewGame" to="." method="_on_NewGame_button_down"]
 
 [editable path="Game"]

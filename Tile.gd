@@ -23,3 +23,6 @@ func setLabel(val):
 
 func _on_Button_pressed():
 	emit_signal("clicked", label)
+
+func getLabel() -> String:
+	return $Label.text

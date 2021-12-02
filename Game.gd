@@ -2,6 +2,8 @@ extends Node2D
 
 signal solved
 signal mixing
+signal move
+signal mixed
 
 const MINLEVEL := 2
 
@@ -83,6 +85,7 @@ func reset():
 	state = States.mix
 	_mix = mix
 	_invLast = Moves.none
+	emit_signal("mixing")
 	nextMix()
 
 func selected(val):
@@ -104,6 +107,7 @@ func doMove(move :int, speed :float = .5):
 		queued = move
 	if state == States.ready:
 		state = States.sliding
+		emit_signal("move")
 	if state in [States.sliding, States.mix]:
 		match move:
 			Moves.down:
@@ -140,6 +144,8 @@ func _on_Tween_tween_all_completed():
 	match state:
 		States.sliding:
 			state = States.ready
+			if checkWin():
+				emit_signal("solved")
 		States.queued:
 			state = States.ready
 			doMove(queued)
@@ -149,6 +155,7 @@ func _on_Tween_tween_all_completed():
 func nextMix():
 	if _mix < 0:
 		state = States.ready
+		emit_signal("mixed")
 		return
 	_mix -= 1
 	var iMove := randi() % 4
@@ -168,3 +175,17 @@ func checkMove(move: int) -> bool:
 		Moves.left:
 			return blankCol < level - 1
 	return false
+
+func checkWin() -> bool:
+	var num := 1
+	for row in level:
+		var cols := level
+		if row == level - 1:
+			cols -= 1
+		for col in cols:
+			if board[row][col] == null:
+				return false
+			if board[row][col].getLabel() != str(num):
+				return false
+			num += 1
+	return true
