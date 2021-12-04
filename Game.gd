@@ -7,7 +7,7 @@ signal mixed
 
 const MINLEVEL := 2
 
-enum States {mix, sliding, none, ready, queued}
+enum States {mix, sliding, none, ready, queued, solving}
 enum Moves {up, down, left, right, none}
 
 export(int) var size :int = (Tile_Class.MINSIZE + 1) * MINLEVEL - 1 setget _setSize
@@ -24,10 +24,23 @@ var state = States.none
 var queued = Moves.none
 var _mix := -1
 var _invLast :int = Moves.none
+var solver := []
 
 func _ready():
 	randomize()
 	reset()
+	mixBoard()
+
+func mixBoard():
+	state = States.mix
+	_mix = mix
+	_invLast = Moves.none
+	emit_signal("mixing")
+	nextMix()
+
+func reset():
+	$Tween.remove_all()
+	_reset()
 
 func _setBGColor(val :Color):
 	$BackGround.color = val
@@ -52,8 +65,9 @@ func _setTileSize(val :int):
 	tileSize = int(max(Tile_Class.MINSIZE, val))
 	reset()
 
-func reset():
-	$Tween.stop_all()
+func _reset():
+	solver.clear()
+	$Tween.remove_all()
 	for col in board:
 		for tile in col:
 			if tile != null:
@@ -81,12 +95,6 @@ func reset():
 			num += 1
 	blankCol = level - 1
 	blankRow = level - 1
-	$Tween.remove_all()
-	state = States.mix
-	_mix = mix
-	_invLast = Moves.none
-	emit_signal("mixing")
-	nextMix()
 
 func selected(val):
 	if not (state in [States.ready, States.sliding]):
@@ -107,8 +115,9 @@ func doMove(move :int, speed :float = .5):
 		queued = move
 	if state == States.ready:
 		state = States.sliding
-		emit_signal("move")
-	if state in [States.sliding, States.mix]:
+	if state in [States.sliding, States.mix, States.solving]:
+		if state != States.mix:
+			emit_signal("move")
 		match move:
 			Moves.down:
 				tile = board[blankRow - 1][blankCol]
@@ -138,7 +147,11 @@ func doMove(move :int, speed :float = .5):
 				board[blankRow][blankCol] = tile
 				blankCol -= 1
 				_invLast = Moves.left
+			_:
+				_invLast = Moves.none
 		board[blankRow][blankCol] = null
+		if state != States.solving and _invLast != Moves.none:
+			solver.append(_invLast)
 	
 func _on_Tween_tween_all_completed():
 	match state:
@@ -151,6 +164,8 @@ func _on_Tween_tween_all_completed():
 			doMove(queued)
 		States.mix:
 			nextMix()
+		States.solving:
+			nextSolve()
 
 func nextMix():
 	if _mix < 0:
@@ -188,4 +203,16 @@ func checkWin() -> bool:
 			if board[row][col].getLabel() != str(num):
 				return false
 			num += 1
+	solver.clear()
 	return true
+
+func autoSolve():
+	state = States.solving
+	nextSolve()
+
+func nextSolve():
+	if solver.size() == 0:
+		state = States.ready
+		emit_signal("solved")
+		return
+	doMove(solver.pop_back(), .05)

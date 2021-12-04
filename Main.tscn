@@ -64,5 +64,6 @@ __meta__ = {
 [connection signal="move" from="Game" to="." method="_on_Game_move"]
 [connection signal="solved" from="Game" to="." method="_on_Game_solved"]
 [connection signal="button_down" from="NewGame" to="." method="_on_NewGame_button_down"]
+[connection signal="button_down" from="Solve" to="." method="_on_Solve_button_down"]
 
 [editable path="Game"]
